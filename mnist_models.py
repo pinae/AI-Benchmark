@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import tensorflow as tf
+from tensorflow.python.framework import graph_io
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -33,19 +34,28 @@ def get_dataset(batch_size=128):
 
 def flat_model(input_shape=(28, 28, 1), num_classes=10):
     seq_model = tf.keras.Sequential()
-    seq_model.add(tf.keras.layers.Flatten(input_shape=input_shape))
-    seq_model.add(tf.keras.layers.Dense(num_classes, activation=tf.keras.activations.softmax))
+    seq_model.add(tf.keras.layers.Input(name='input', shape=input_shape))
+    seq_model.add(tf.keras.layers.Flatten())
+    seq_model.add(tf.keras.layers.Dense(num_classes, activation=tf.keras.activations.softmax, name='output'))
     return seq_model
 
 
 if __name__ == "__main__":
-    in_shape, train_dataset, test_dataset = get_dataset(batch_size=200)
-    model = flat_model(in_shape, 10)
-    model.compile(loss=tf.keras.losses.categorical_crossentropy,
-                  optimizer=tf.keras.optimizers.Adam(),
-                  metrics=[tf.keras.metrics.categorical_accuracy])
-    history = model.fit(train_dataset, epochs=5, validation_data=test_dataset)
-    print('\n# Evaluate')
-    test_loss, test_accuracy = model.evaluate(test_dataset)
-    print('Test loss:', test_loss)
-    print('Test accuracy:', test_accuracy)
+    with tf.Graph().as_default():
+        with tf.compat.v1.Session() as sess:
+            tf.compat.v1.keras.backend.set_session(sess)
+
+            in_shape, train_dataset, test_dataset = get_dataset(batch_size=200)
+            model = flat_model(in_shape, 10)
+            model.compile(loss=tf.keras.losses.categorical_crossentropy,
+                          optimizer=tf.keras.optimizers.Adam(),
+                          metrics=[tf.keras.metrics.categorical_accuracy])
+            history = model.fit(train_dataset, epochs=10, validation_data=test_dataset)
+            print('\n# Evaluate')
+            test_loss, test_accuracy = model.evaluate(test_dataset)
+            print('Test loss:', test_loss)
+            print('Test accuracy:', test_accuracy)
+
+            frozen_model = tf.compat.v1.graph_util.convert_variables_to_constants(
+                sess, sess.graph_def, ["output/Softmax"])
+            graph_io.write_graph(frozen_model, './', 'flat_mnist_graph.pb', as_text=False)
