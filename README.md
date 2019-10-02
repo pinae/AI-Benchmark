@@ -1,2 +1,2 @@
 # AI-Benchmark
-Collection of neural Network models for benchmarking.
+Collection of neural network models for benchmarking.

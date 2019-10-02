@@ -1,0 +1,9 @@
+pip
+wheel
+setuptools==41.2.0
+numpy
+opencv-python
+tensorflow
+ipython
+jupyter
+sacred
